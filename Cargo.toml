@@ -1,0 +1,12 @@
+[package]
+name = "cerial"
+version = "0.1.0"
+authors = ["Joey Hines <joey@ahines.net>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossterm = "0.18.2"
+structopt = "0.3.20"
+serialport = "3.3.0"
