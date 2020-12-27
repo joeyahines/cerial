@@ -1,9 +1,8 @@
-use structopt::StructOpt;
-use serialport::{DataBits, FlowControl, Parity, StopBits, Error, ErrorKind, SerialPortSettings};
-use std::time::Duration;
-use std::str::FromStr;
+use serialport::{DataBits, Error, ErrorKind, FlowControl, Parity, SerialPortSettings, StopBits};
 use std::ffi::OsString;
-
+use std::str::FromStr;
+use std::time::Duration;
+use structopt::StructOpt;
 
 fn parse_data_bits(src: &str) -> Result<DataBits, Error> {
     let bits = u8::from_str(src).map_err(|f| Error::new(ErrorKind::InvalidInput, f.to_string()))?;
@@ -12,7 +11,10 @@ fn parse_data_bits(src: &str) -> Result<DataBits, Error> {
         6 => Ok(DataBits::Six),
         7 => Ok(DataBits::Seven),
         8 => Ok(DataBits::Eight),
-        _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid data-bit size."))
+        _ => Err(Error::new(
+            ErrorKind::InvalidInput,
+            "Invalid data-bit size.",
+        )),
     }
 }
 
@@ -24,7 +26,7 @@ fn parse_flow_control(src: &str) -> Result<FlowControl, Error> {
         "s" => Ok(FlowControl::Software),
         "h" => Ok(FlowControl::Hardware),
         "hardware" => Ok(FlowControl::Hardware),
-        _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid flow control."))
+        _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid flow control.")),
     }
 }
 
@@ -36,7 +38,7 @@ fn parse_parity(src: &str) -> Result<Parity, Error> {
         "odd" => Ok(Parity::Odd),
         "e" => Ok(Parity::Even),
         "even" => Ok(Parity::Even),
-        _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid parity."))
+        _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid parity.")),
     }
 }
 
@@ -45,10 +47,9 @@ fn parse_stop_bits(src: &str) -> Result<StopBits, Error> {
     match bits {
         1 => Ok(StopBits::One),
         2 => Ok(StopBits::Two),
-        _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid stop bits."))
+        _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid stop bits.")),
     }
 }
-
 
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(about = "Part of a complete serial breakfast!")]
@@ -71,7 +72,7 @@ pub struct Cerial {
     pub stop_bits: StopBits,
     /// Timeout in milliseconds
     #[structopt(short, long, default_value = "10")]
-    pub timeout: u64
+    pub timeout: u64,
 }
 
 impl Into<SerialPortSettings> for Cerial {
@@ -82,7 +83,7 @@ impl Into<SerialPortSettings> for Cerial {
             flow_control: self.flow_control,
             parity: self.parity,
             stop_bits: self.stop_bits,
-            timeout: Duration::from_millis(self.timeout)
+            timeout: Duration::from_millis(self.timeout),
         }
     }
 }

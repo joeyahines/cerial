@@ -1,16 +1,18 @@
+use crate::serial::SerialTelemetry;
+use crossterm::event;
 use crossterm::event::{Event, KeyEvent};
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
-use crossterm::event;
 
 pub enum DisplayUpdateEvent {
     KeyInput(KeyEvent),
     SerialInput(Vec<u8>),
+    SerialTelemetry(SerialTelemetry),
     Tick,
 }
 
 pub fn terminal_event_thread(tx: Sender<DisplayUpdateEvent>) {
-    let tick_rate = Duration::from_millis(50);
+    let tick_rate = Duration::from_millis(100);
     let mut last_tick = Instant::now();
     loop {
         let timeout = tick_rate
