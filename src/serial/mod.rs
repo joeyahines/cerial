@@ -1,7 +1,9 @@
 use crate::ui::DisplayUpdateEvent;
 use serialport::SerialPort;
 use std::fmt::{Display, Formatter};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 #[derive(Debug, Copy, Clone)]
 pub struct SerialTelemetry {
@@ -47,8 +49,11 @@ impl SerialTelemetry {
     }
 }
 
-pub fn serial_rx_thread(tx: Sender<DisplayUpdateEvent>, mut serial_port: Box<dyn SerialPort>) {
-    loop {
+pub fn serial_rx_thread(
+    tx: Sender<DisplayUpdateEvent>,
+    serial_port: Arc<Mutex<Box<dyn SerialPort>>>,
+) {
+    while let Ok(mut serial_port) = serial_port.lock() {
         let mut buffer = vec![0; 128];
         match serial_port.read(&mut buffer) {
             Ok(_) => {
@@ -74,6 +79,19 @@ pub fn serial_rx_thread(tx: Sender<DisplayUpdateEvent>, mut serial_port: Box<dyn
             ))
             .is_err()
         {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+pub fn serial_tx_thread(rx: Receiver<Vec<u8>>, serial_port: Arc<Mutex<Box<dyn SerialPort>>>) {
+    while let Ok(buffer) = rx.recv() {
+        if let Ok(mut serial_port) = serial_port.lock() {
+            if serial_port.write_all(buffer.as_slice()).is_err() {
+                break;
+            }
+        } else {
             break;
         }
     }
