@@ -18,8 +18,7 @@ pub fn terminal_event_thread(tx: Sender<DisplayUpdateEvent>) {
             if let Event::Key(key) = event::read().unwrap() {
                 tx.send(DisplayUpdateEvent::KeyInput(key)).unwrap();
             }
-        }
-        else if tx.send(DisplayUpdateEvent::Ping).is_err() {
+        } else if tx.send(DisplayUpdateEvent::Ping).is_err() {
             break;
         }
     }

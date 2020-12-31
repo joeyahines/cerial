@@ -53,34 +53,39 @@ pub fn serial_rx_thread(
     tx: Sender<DisplayUpdateEvent>,
     serial_port: Arc<Mutex<Box<dyn SerialPort>>>,
 ) {
-    while let Ok(mut serial_port) = serial_port.lock() {
-        let mut buffer = vec![0; 128];
-        match serial_port.read(&mut buffer) {
-            Ok(_) => {
-                if tx
-                    .send(DisplayUpdateEvent::SerialInput(buffer.drain(..).collect()))
-                    .is_err()
-                {
-                    break;
+    loop {
+        if let Ok(mut serial_port) = serial_port.lock() {
+            let mut buffer = vec![0; 128];
+            match serial_port.read(&mut buffer) {
+                Ok(count) => {
+                    if tx
+                        .send(DisplayUpdateEvent::SerialInput(
+                            buffer.drain(..count).collect(),
+                        ))
+                        .is_err()
+                    {
+                        break;
+                    }
                 }
-            }
-            Err(err) => match err.kind() {
-                std::io::ErrorKind::TimedOut => {}
-                err => {
-                    println!("Error {:?}", err);
-                    break;
-                }
-            },
-        };
+                Err(err) => match err.kind() {
+                    std::io::ErrorKind::TimedOut => {}
+                    err => {
+                        println!("Error {:?}", err);
+                        break;
+                    }
+                },
+            };
 
-        if tx
-            .send(DisplayUpdateEvent::SerialTelemetry(
-                SerialTelemetry::read_serial_telemetry(&mut serial_port),
-            ))
-            .is_err()
-        {
-            break;
+            if tx
+                .send(DisplayUpdateEvent::SerialTelemetry(
+                    SerialTelemetry::read_serial_telemetry(&mut serial_port),
+                ))
+                .is_err()
+            {
+                break;
+            }
         }
+
         std::thread::sleep(Duration::from_millis(10));
     }
 }

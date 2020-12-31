@@ -1,4 +1,5 @@
 import sys
+import serial
 
 
 def tx_test(dev):
@@ -7,10 +8,12 @@ def tx_test(dev):
             f.write("\033[93m{}: This is a test message.\r\n".format(i))
 
 
-def rx_test(dev):
-    with open(dev, "r") as f:
-        while True:
-            print(f.read())
+def rx_test(ser: serial.Serial):
+    while True:
+        c = ser.read(1)
+        print(c)
+        ser.write(c)
+        ser.flush()
 
 
 def main():
@@ -20,11 +23,15 @@ def main():
     else:
         dev = sys.argv[1]
         test = sys.argv[2]
+        ser = serial.Serial(dev)
 
-        if test == "rx":
-            rx_test(dev)
-        else:
-            tx_test(dev)
+        try:
+            if test == "rx":
+                rx_test(ser)
+            else:
+                tx_test(dev)
+        finally:
+            ser.close()
 
 
 if __name__ == "__main__":
