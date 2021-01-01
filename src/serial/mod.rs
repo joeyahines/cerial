@@ -1,9 +1,12 @@
-use crate::ui::DisplayUpdateEvent;
-use serialport::SerialPort;
 use std::fmt::{Display, Formatter};
-use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
+
+use serialport::{open_with_settings, SerialPort};
+
+use crate::app::{CerialState, error};
+use crate::ui::DisplayUpdateEvent;
 
 #[derive(Debug, Copy, Clone)]
 pub struct SerialTelemetry {
@@ -100,4 +103,9 @@ pub fn serial_tx_thread(rx: Receiver<Vec<u8>>, serial_port: Arc<Mutex<Box<dyn Se
             break;
         }
     }
+}
+
+pub fn open_serial_port(cerial_state: &CerialState) -> error::Result<Arc<Mutex<Box<dyn SerialPort>>>> {
+    let serialport = open_with_settings(&cerial_state.serial_dev, &cerial_state.serial_settings)?;
+    Ok(Arc::new(Mutex::new(serialport)))
 }

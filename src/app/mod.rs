@@ -69,7 +69,9 @@ impl CerialState {
     pub fn menu_string(&self) -> String {
         match self.menu_state {
             MenuState::Hidden => String::new(),
-            MenuState::SerialSettings => format!("{}: {}", self.mode, self.display_serial_settings()),
+            MenuState::SerialSettings => {
+                format!("{}: {}", self.mode, self.display_serial_settings())
+            }
             MenuState::SerialTelemetry => format!("{}: {}", self.mode, self.serial_telemetry),
         }
     }
