@@ -1,30 +1,28 @@
 use std::io;
 use std::io::Write;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
+use crossterm::event::KeyEvent;
+use crossterm::terminal::{size, ClearType};
+use crossterm::tty::IsTty;
 use crossterm::{
     cursor::{MoveTo, RestorePosition, SavePosition},
     event::{KeyCode, KeyModifiers},
     execute,
     style::{Color, Print, SetForegroundColor},
     terminal::{
-        Clear, disable_raw_mode, enable_raw_mode, EnableLineWrap, EnterAlternateScreen,
+        disable_raw_mode, enable_raw_mode, Clear, EnableLineWrap, EnterAlternateScreen,
         LeaveAlternateScreen,
     },
 };
-use crossterm::event::KeyEvent;
-use crossterm::terminal::{ClearType, size};
-use crossterm::tty::IsTty;
-use serialport::{open_with_settings, SerialPort};
 use structopt::StructOpt;
 
-use app::{CerialMode, CerialState};
 use app::error::Result;
-use args::Cerial;
+use app::{CerialMode, CerialState};
+use args::CerialArgs;
 use serial::{serial_rx_thread, serial_tx_thread};
-use ui::{DisplayUpdateEvent, terminal_event_thread};
+use ui::{terminal_event_thread, DisplayUpdateEvent};
 
 use crate::app::error::CerialError;
 use crate::app::MenuState;
@@ -34,6 +32,7 @@ mod args;
 mod serial;
 mod ui;
 
+/// Handles user inputs in menu mode
 fn menu_mode<T: Write>(
     app_state: &mut CerialState,
     _stream: &mut T,
@@ -74,6 +73,7 @@ fn menu_mode<T: Write>(
     Ok(())
 }
 
+/// Handles user input in insert mode
 fn insert_mode<T: Write>(
     app_state: &mut CerialState,
     _stream: &mut T,
@@ -97,6 +97,7 @@ fn insert_mode<T: Write>(
     Ok(())
 }
 
+/// Clear the menu bar line
 fn clear_menu_bar<T: Write>(stream: &mut T) -> Result<()> {
     let (_, rows) = size()?;
     execute!(
@@ -109,6 +110,7 @@ fn clear_menu_bar<T: Write>(stream: &mut T) -> Result<()> {
     .map_err(|e| e.into())
 }
 
+/// Display the current menu bar
 fn print_menu_bar<T: Write>(app_state: &CerialState, stream: &mut T) -> Result<()> {
     let (_, rows) = size()?;
     execute!(
@@ -123,20 +125,25 @@ fn print_menu_bar<T: Write>(app_state: &CerialState, stream: &mut T) -> Result<(
     .map_err(|e| e.into())
 }
 
+/// Main display loop
 fn display_loop(
     mut cerial_state: CerialState,
     display_update_rx: Receiver<DisplayUpdateEvent>,
     serial_send_tx: Sender<Vec<u8>>,
 ) -> Result<()> {
+    // Get stdout and stderr file descs
     let mut stdout = io::stdout();
     let mut stderr = io::stderr();
 
+    // If stdout is not a tty, exit
     if !stdout.is_tty() {
         return Err(CerialError::NotTTY);
     }
 
+    // Enable raw mode
     enable_raw_mode()?;
 
+    // Prepare terminal for application
     execute!(
         stdout,
         EnterAlternateScreen,
@@ -145,11 +152,17 @@ fn display_loop(
         EnableLineWrap,
     )?;
 
+    // Print the menu bar
     print_menu_bar(&cerial_state, &mut stderr)?;
+
+    // Until the user exits
     while !cerial_state.exit {
+        // Wait for display update event
         match display_update_rx.recv()? {
+            // On a key input
             DisplayUpdateEvent::KeyInput(event) => {
                 clear_menu_bar(&mut stderr)?;
+                // Handle key input based on state
                 match cerial_state.mode {
                     CerialMode::Menu => menu_mode(&mut cerial_state, &mut stdout, event)?,
                     CerialMode::Input => {
@@ -158,26 +171,34 @@ fn display_loop(
                     _ => {}
                 };
             }
+            // On serial input
             DisplayUpdateEvent::SerialInput(data) => {
+                // Display data to terminal
                 clear_menu_bar(&mut stderr)?;
                 stdout.write_all(data.as_slice())?;
                 stdout.flush()?;
             }
+            //On serial telemetry update
             DisplayUpdateEvent::SerialTelemetry(tel) => {
+                // Update current telemetry
                 cerial_state.serial_telemetry = tel;
             }
             _ => {}
         }
+        // Update meny bar
         print_menu_bar(&cerial_state, &mut stderr)?;
     }
+
+    // Restore terminal to intial state
     disable_raw_mode()?;
     execute!(stdout, LeaveAlternateScreen,)?;
+
     Ok(())
 }
 
 fn main() -> Result<()> {
-    // Parse agrs
-    let args: Cerial = Cerial::from_args();
+    // Parse args
+    let args: CerialArgs = CerialArgs::from_args();
     let serial_settings = args.clone().into();
 
     // Initialize app state

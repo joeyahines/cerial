@@ -4,6 +4,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use structopt::StructOpt;
 
+/// Parse serial data bits from a str
 fn parse_data_bits(src: &str) -> Result<DataBits, Error> {
     let bits = u8::from_str(src).map_err(|f| Error::new(ErrorKind::InvalidInput, f.to_string()))?;
     match bits {
@@ -18,6 +19,7 @@ fn parse_data_bits(src: &str) -> Result<DataBits, Error> {
     }
 }
 
+/// Parse flow control from a str
 fn parse_flow_control(src: &str) -> Result<FlowControl, Error> {
     match src.to_ascii_lowercase().as_str() {
         "n" => Ok(FlowControl::None),
@@ -30,6 +32,7 @@ fn parse_flow_control(src: &str) -> Result<FlowControl, Error> {
     }
 }
 
+/// Parse parity from a str
 fn parse_parity(src: &str) -> Result<Parity, Error> {
     match src.to_ascii_lowercase().as_str() {
         "n" => Ok(Parity::None),
@@ -42,6 +45,7 @@ fn parse_parity(src: &str) -> Result<Parity, Error> {
     }
 }
 
+/// Parse stop bits from a str
 fn parse_stop_bits(src: &str) -> Result<StopBits, Error> {
     let bits = u8::from_str(src).map_err(|f| Error::new(ErrorKind::InvalidInput, f.to_string()))?;
     match bits {
@@ -52,8 +56,8 @@ fn parse_stop_bits(src: &str) -> Result<StopBits, Error> {
 }
 
 #[derive(Debug, StructOpt, Clone)]
-#[structopt(about = "Part of a complete serial breakfast!")]
-pub struct Cerial {
+#[structopt(name = "Cerial", about = "Part of a complete serial breakfast!")]
+pub struct CerialArgs {
     /// Serial port
     pub serial_port: OsString,
     /// Baud rate
@@ -75,7 +79,7 @@ pub struct Cerial {
     pub timeout: u64,
 }
 
-impl Into<SerialPortSettings> for Cerial {
+impl Into<SerialPortSettings> for CerialArgs {
     fn into(self) -> SerialPortSettings {
         SerialPortSettings {
             baud_rate: self.baud_rate,

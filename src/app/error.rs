@@ -1,14 +1,21 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::mpsc;
 
+/// Cerial result type
 pub type Result<T> = std::result::Result<T, CerialError>;
 
+/// Cerial Error
 #[derive(Debug)]
 pub enum CerialError {
+    /// Serial port error
     SerialError(serialport::Error),
+    /// Crossterm Error
     CrosstermError(crossterm::ErrorKind),
+    /// MPSC messaging error
     ThreadMessageError(mpsc::RecvError),
+    /// IO Error
     IOError(std::io::Error),
+    /// Terminal not a TTY error
     NotTTY,
 }
 
