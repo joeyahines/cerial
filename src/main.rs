@@ -26,7 +26,7 @@ use ui::{terminal_event_thread, DisplayUpdateEvent};
 
 use crate::app::error::CerialError;
 use crate::app::MenuState;
-use crate::ui::input::{key_event_to_vec};
+use crate::ui::input::key_event_to_vec;
 
 mod app;
 mod args;
@@ -222,7 +222,7 @@ fn main() -> Result<()> {
     let serial_tx_thread =
         thread::spawn(move || serial_tx_thread(serial_send_rx, serialport_write));
 
-    // Begin diisplay
+    // Begin display loop
     display_loop(cerial_state, display_update_rx, serial_send_tx)?;
 
     // Cleanup
