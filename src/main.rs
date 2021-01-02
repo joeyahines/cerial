@@ -26,6 +26,7 @@ use ui::{terminal_event_thread, DisplayUpdateEvent};
 
 use crate::app::error::CerialError;
 use crate::app::MenuState;
+use crate::ui::input::{key_event_to_vec};
 
 mod app;
 mod args;
@@ -88,9 +89,8 @@ fn insert_mode<T: Write>(
             app_state.mode = CerialMode::Menu;
         }
         KeyEvent { .. } => {
-            if let KeyCode::Char(c) = key_event.code {
-                serial_send_tx.send(vec![c as u8]).unwrap();
-            }
+            let data = key_event_to_vec(key_event);
+            serial_send_tx.send(data).unwrap();
         }
     };
 

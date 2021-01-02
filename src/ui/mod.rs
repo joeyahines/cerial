@@ -1,3 +1,5 @@
+pub mod input;
+
 use crate::serial::SerialTelemetry;
 use crossterm::event;
 use crossterm::event::{Event, KeyEvent};
