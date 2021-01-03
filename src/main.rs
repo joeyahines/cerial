@@ -98,12 +98,11 @@ fn insert_mode<T: Write>(
 }
 
 /// Clear the menu bar line
-fn clear_menu_bar<T: Write>(stream: &mut T) -> Result<()> {
-    let (_, rows) = size()?;
+fn clear_menu_bar<T: Write>(stream: &mut T, menu_pos: u16) -> Result<()> {
     execute!(
         stream,
         SavePosition,
-        MoveTo(0, rows),
+        MoveTo(0, menu_pos),
         Clear(ClearType::CurrentLine),
         RestorePosition
     )
@@ -111,12 +110,11 @@ fn clear_menu_bar<T: Write>(stream: &mut T) -> Result<()> {
 }
 
 /// Display the current menu bar
-fn print_menu_bar<T: Write>(app_state: &CerialState, stream: &mut T) -> Result<()> {
-    let (_, rows) = size()?;
+fn print_menu_bar<T: Write>(app_state: &CerialState, stream: &mut T, menu_pos: u16) -> Result<()> {
     execute!(
         stream,
         SavePosition,
-        MoveTo(0, rows),
+        MoveTo(0, menu_pos),
         Clear(ClearType::CurrentLine),
         SetForegroundColor(Color::White),
         Print(app_state.menu_string()),
@@ -152,16 +150,29 @@ fn display_loop(
         EnableLineWrap,
     )?;
 
+    // Get initial terminal size
+    // NOTE: these values appear to be much larger than what the terminal size actually is.
+    // It could be a Konsole thing, might want to test this on other platforms.
+    // The values we get from resize events look ok, so these are good enough stand in values.
+    let (mut rows, mut _cols) = size()?;
+
     // Print the menu bar
-    print_menu_bar(&cerial_state, &mut stderr)?;
+    print_menu_bar(&cerial_state, &mut stderr, rows - 1)?;
+
+    // Get real terminal size after we have written to it
 
     // Until the user exits
     while !cerial_state.exit {
         // Wait for display update event
-        match display_update_rx.recv()? {
+        let event = display_update_rx.recv()?;
+
+        // Clear menu bar before processing the event
+        clear_menu_bar(&mut stderr, rows - 1)?;
+
+        // Match event
+        match event {
             // On a key input
             DisplayUpdateEvent::KeyInput(event) => {
-                clear_menu_bar(&mut stderr)?;
                 // Handle key input based on state
                 match cerial_state.mode {
                     CerialMode::Menu => menu_mode(&mut cerial_state, &mut stdout, event)?,
@@ -174,7 +185,6 @@ fn display_loop(
             // On serial input
             DisplayUpdateEvent::SerialInput(data) => {
                 // Display data to terminal
-                clear_menu_bar(&mut stderr)?;
                 stdout.write_all(data.as_slice())?;
                 stdout.flush()?;
             }
@@ -183,13 +193,19 @@ fn display_loop(
                 // Update current telemetry
                 cerial_state.serial_telemetry = tel;
             }
+            // On terminal resize event
+            DisplayUpdateEvent::TerminalResize(new_cols, new_rows) => {
+                // Update terminal size
+                _cols = new_cols;
+                rows = new_rows;
+            }
             _ => {}
         }
-        // Update meny bar
-        print_menu_bar(&cerial_state, &mut stderr)?;
+        // Update menu bar
+        print_menu_bar(&cerial_state, &mut stderr, rows - 1)?;
     }
 
-    // Restore terminal to intial state
+    // Restore terminal to initial state
     disable_raw_mode()?;
     execute!(stdout, LeaveAlternateScreen,)?;
 

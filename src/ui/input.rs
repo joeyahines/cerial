@@ -1,5 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+/// Converts a Crossterm Key event back into the raw key stroke
+/// TODO: this should be rewritten, OR crossterm should not handle keyboard events
 pub fn key_event_to_vec(key_event: KeyEvent) -> Vec<u8> {
     match key_event.code {
         KeyCode::Char(c) => {
@@ -11,7 +13,7 @@ pub fn key_event_to_vec(key_event: KeyEvent) -> Vec<u8> {
                 [c as u8].to_vec()
             }
         }
-        KeyCode::Backspace => b"\x7f".to_vec(),
+        KeyCode::Backspace => b"\x08".to_vec(),
         KeyCode::Enter => b"\n".to_vec(),
         KeyCode::Left => match key_event.modifiers {
             KeyModifiers::NONE => b"\x1b[[D".to_vec(),
